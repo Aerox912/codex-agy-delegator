@@ -9,6 +9,7 @@ import {
   buildAgentInvocation,
   displayCommand,
   probeAgentBackend,
+  type ClaudeEffort,
   type AgentKind,
   type AgentPermissionMode,
 } from './agentBackends.js';
@@ -51,6 +52,7 @@ export interface DelegateAgentArgs {
   agentCommand?: string;
   agentArgs?: string[];
   model?: string;
+  effort?: ClaudeEffort;
   permissionMode?: AgentPermissionMode;
   allowUnsafe?: boolean;
   allowedFiles?: string[];
@@ -355,6 +357,7 @@ export async function delegateToAgent(args: DelegateAgentArgs): Promise<any> {
     agentCommand: args.agentCommand,
     agentArgs,
     model: args.model,
+    effort: args.effort,
     permissionMode,
     allowUnsafe,
     timeoutMs,
@@ -430,6 +433,7 @@ export async function delegateToAgent(args: DelegateAgentArgs): Promise<any> {
       agentArgs,
       agentVersion: probe.version,
       model: args.model,
+      effort: args.effort,
       permissionMode,
       allowUnsafe,
       dispatchOrigin,

@@ -41,6 +41,10 @@ Claude Code 运行始终使用 1M 上下文的模型别名。不传 `model` 时�
 `[200k]` 变体会被自动升级为 `[1m]`。其他任何取值（包括未限定的 200K/默认
 上下文模型名）都会被拒绝。
 
+每次 Claude Code 运行也会显式传入 effort。`fable` 和 `opus` 默认使用
+`xhigh`，`sonnet` 默认使用 `high`。可将 `effort` 显式设为 `low`、`medium`、
+`high`、`xhigh` 或 `max` 来覆盖对应模型的默认值。
+
 Agy 运行也会始终显式传入模型。不传 `model` 时默认使用当前 Agy CLI 提供的
 Gemini 3.1 Pro High 别名 `gemini-3.1-pro-high`；显式传入的其他 Agy 模型仍会
 保留。

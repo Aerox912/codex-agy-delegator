@@ -78,6 +78,9 @@ for (const [host, targets] of Object.entries(matrix)) {
         assert.equal(payload.dispatchOrigin, host);
         assert.equal(payload.dispatchTarget, target);
         assert.match(payload.dispatchTraceId, /^[a-f0-9]{32}$/u);
+        if (target === 'claude') {
+          assert.match(payload.command, /--model opus\[1m\] --effort xhigh/u);
+        }
       }
     }
   } finally {
@@ -114,6 +117,9 @@ try {
       assert.equal(payload.status, 'success');
       assert.equal(payload.dispatchOrigin, 'agy');
       assert.equal(payload.dispatchTarget, target);
+      if (target === 'claude') {
+        assert.match(payload.command, /--model opus\[1m\] --effort xhigh/u);
+      }
     }
   }
 } finally {

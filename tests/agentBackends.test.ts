@@ -5,6 +5,7 @@ import {
   buildAgentInvocation,
   normalizeAgentOutput,
   resolveAgyModel,
+  resolveClaudeEffort,
   resolveClaudeModel,
   type AgentBackendConfig,
 } from '../src/agentBackends.js';
@@ -100,7 +101,19 @@ test('resolveClaudeModel rejects unknown or unsupported model values', () => {
   assert.throws(() => resolveClaudeModel('gpt-4'), /Unsupported claude model/u);
 });
 
-test('Claude invocation always carries exactly one --model flag with a [1m] alias', () => {
+test('resolveClaudeEffort applies model-specific defaults and validates overrides', () => {
+  assert.strictEqual(resolveClaudeEffort('fable'), 'xhigh');
+  assert.strictEqual(resolveClaudeEffort('opus[1m]'), 'xhigh');
+  assert.strictEqual(resolveClaudeEffort('sonnet[1m]'), 'high');
+  assert.strictEqual(resolveClaudeEffort(undefined), 'xhigh');
+  assert.strictEqual(resolveClaudeEffort('sonnet', ' XHIGH '), 'xhigh');
+  assert.throws(
+    () => resolveClaudeEffort('opus', 'extreme'),
+    /Unsupported Claude effort/u,
+  );
+});
+
+test('Claude invocation always carries explicit model and effort defaults', () => {
   const withoutModel = buildAgentInvocation(
     config({ agent: 'claude' }),
     'inspect',
@@ -113,6 +126,12 @@ test('Claude invocation always carries exactly one --model flag with a [1m] alia
   );
   const modelIndex = withoutModel.args.indexOf('--model');
   assert.strictEqual(withoutModel.args[modelIndex + 1], 'opus[1m]');
+  assert.deepStrictEqual(
+    withoutModel.args.filter((argument) => argument === '--effort'),
+    ['--effort'],
+  );
+  const effortIndex = withoutModel.args.indexOf('--effort');
+  assert.strictEqual(withoutModel.args[effortIndex + 1], 'xhigh');
 
   const withModel = buildAgentInvocation(
     config({ agent: 'claude', model: 'OPUS[200k]' }),
@@ -122,6 +141,24 @@ test('Claude invocation always carries exactly one --model flag with a [1m] alia
   );
   const upgradedIndex = withModel.args.indexOf('--model');
   assert.strictEqual(withModel.args[upgradedIndex + 1], 'opus[1m]');
+
+  const withSonnet = buildAgentInvocation(
+    config({ agent: 'claude', model: 'sonnet' }),
+    'inspect',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  const sonnetEffortIndex = withSonnet.args.indexOf('--effort');
+  assert.strictEqual(withSonnet.args[sonnetEffortIndex + 1], 'high');
+
+  const withOverride = buildAgentInvocation(
+    config({ agent: 'claude', model: 'sonnet', effort: 'xhigh' }),
+    'inspect',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  const overrideEffortIndex = withOverride.args.indexOf('--effort');
+  assert.strictEqual(withOverride.args[overrideEffortIndex + 1], 'xhigh');
 
   assert.throws(
     () => buildAgentInvocation(

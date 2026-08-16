@@ -47,6 +47,9 @@ test('Claude dispatch tool documents the enforced 1M model policy', () => {
   assert.match(properties.model.description, /opus\[1m\]/u);
   assert.match(properties.model.description, /small tasks/u);
   assert.match(properties.model.description, /every other value is rejected/u);
+  assert.deepStrictEqual(properties.effort.enum, ['low', 'medium', 'high', 'xhigh', 'max']);
+  assert.match(properties.effort.description, /xhigh for fable and opus/u);
+  assert.match(properties.effort.description, /high for sonnet/u);
 });
 
 test('Agy dispatch tool documents the Gemini 3.1 Pro default', () => {

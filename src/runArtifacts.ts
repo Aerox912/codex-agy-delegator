@@ -3,7 +3,11 @@ import * as path from 'path';
 import { existsSync } from 'fs';
 import { randomBytes } from 'crypto';
 
-import type { AgentKind, AgentPermissionMode } from './agentBackends.js';
+import type {
+  AgentKind,
+  AgentPermissionMode,
+  ClaudeEffort,
+} from './agentBackends.js';
 
 export type RunStatus =
   | 'queued'
@@ -43,6 +47,7 @@ export interface RunConfig {
   agentArgs?: string[];
   agentVersion: string | null;
   model?: string;
+  effort?: ClaudeEffort;
   permissionMode: AgentPermissionMode;
   allowUnsafe: boolean;
   dispatchOrigin?: Exclude<AgentKind, 'custom'> | 'internal';

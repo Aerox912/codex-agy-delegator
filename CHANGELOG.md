@@ -8,6 +8,8 @@ All notable changes to this project are documented here.
 
 - Tripled the default agent timeout to 45 minutes and the per-command
   verification timeout to 15 minutes.
+- Claude delegations now pass an explicit effort level. Fable and Opus default
+  to `xhigh`; Sonnet defaults to `high`, with validated explicit overrides.
 
 ### Security
 

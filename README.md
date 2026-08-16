@@ -39,6 +39,10 @@ explicit `[1m]` aliases, or their `[200k]` aliases; matching is case-insensitive
 and every accepted value resolves to `sonnet[1m]`, `opus[1m]`, or `fable[1m]`.
 All other Claude model values are rejected.
 
+Claude effort is also explicit on every run. `fable` and `opus` default to
+`xhigh`; `sonnet` defaults to `high`. Pass `effort` as `low`, `medium`, `high`,
+`xhigh`, or `max` to override the model-specific default.
+
 Every `delegate_to_agy` run also includes an explicit model. Omitting `model`
 selects the installed Agy CLI's Gemini 3.1 Pro High alias,
 `gemini-3.1-pro-high`; explicit Agy model overrides remain supported.
@@ -49,7 +53,7 @@ selects the installed Agy CLI's Gemini 3.1 Pro High alias,
 | --- | --- |
 | Agy 1.1.1+ | `--sandbox --mode accept-edits --model gemini-3.1-pro-high --disable-slash-commands` |
 | Codex | `exec --ephemeral --ignore-user-config --sandbox workspace-write` |
-| Claude Code | `--strict-mcp-config --mcp-config {"mcpServers":{}} --no-session-persistence --permission-mode acceptEdits --model opus[1m]` |
+| Claude Code | `--strict-mcp-config --mcp-config {"mcpServers":{}} --no-session-persistence --permission-mode acceptEdits --model opus[1m] --effort xhigh` |
 
 Each run uses a generated Git worktree by default. The server persists task,
 report, log, diff, and patch artifacts, validates file allow/deny rules, runs

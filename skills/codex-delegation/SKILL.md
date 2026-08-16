@@ -34,6 +34,10 @@ Accepted values are `sonnet`, `opus`, `fable`, or their explicit
 `sonnet[1m]` / `opus[1m]` / `fable[1m]` aliases (case-insensitive). Any `[200k]`
 variant of those three is upgraded to `[1m]`. Every other value is rejected.
 
+Claude effort defaults by model: `fable` and `opus` use `xhigh`; `sonnet` uses
+`high`. Set `effort` to `low`, `medium`, `high`, `xhigh`, or `max` only when the
+task needs an explicit override.
+
 For `delegate_to_agy`, omitting `model` selects `gemini-3.1-pro-high`.
 An explicit Agy model override is passed through after surrounding whitespace
 is removed.

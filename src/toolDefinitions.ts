@@ -93,6 +93,16 @@ function delegateTool(target: DispatchHost) {
           description: 'Optional Agy model override. Defaults to gemini-3.1-pro-high.',
         }
         : commonDelegateProperties.model,
+    ...(target === 'claude'
+      ? {
+        effort: {
+          type: 'string',
+          enum: ['low', 'medium', 'high', 'xhigh', 'max'],
+          description: 'Optional Claude effort override. Defaults to xhigh for fable and '
+            + 'opus, and high for sonnet.',
+        },
+      }
+      : {}),
   };
   return {
     name: `delegate_to_${target}`,

@@ -4,12 +4,14 @@ import { runCommand } from './shell.js';
 
 export type AgentKind = 'agy' | 'codex' | 'claude' | 'custom';
 export type AgentPermissionMode = 'read-only' | 'workspace-write' | 'full-access';
+export type ClaudeEffort = 'low' | 'medium' | 'high' | 'xhigh' | 'max';
 
 export interface AgentBackendConfig {
   agent: AgentKind;
   agentCommand?: string;
   agentArgs?: string[];
   model?: string;
+  effort?: ClaudeEffort;
   permissionMode: AgentPermissionMode;
   allowUnsafe: boolean;
   timeoutMs: number;
@@ -33,6 +35,7 @@ export interface AgentProbe {
 const MINIMUM_AGY_VERSION = [1, 1, 1] as const;
 
 const CLAUDE_1M_MODEL_PATTERN = /^(sonnet|opus|fable)(?:\[(1m|200k)\])?$/iu;
+const CLAUDE_EFFORTS: readonly ClaudeEffort[] = ['low', 'medium', 'high', 'xhigh', 'max'];
 const DEFAULT_CLAUDE_MODEL = 'opus[1m]';
 const DEFAULT_AGY_MODEL = 'gemini-3.1-pro-high';
 
@@ -52,6 +55,21 @@ export function resolveClaudeModel(model?: string): string {
     );
   }
   return `${match[1].toLowerCase()}[1m]`;
+}
+
+export function resolveClaudeEffort(model?: string, effort?: string): ClaudeEffort {
+  const trimmedEffort = effort?.trim().toLowerCase();
+  if (trimmedEffort) {
+    if (!CLAUDE_EFFORTS.includes(trimmedEffort as ClaudeEffort)) {
+      throw new Error(
+        `Unsupported Claude effort: "${effort}". Use low, medium, high, xhigh, or max.`,
+      );
+    }
+    return trimmedEffort as ClaudeEffort;
+  }
+
+  const resolvedModel = resolveClaudeModel(model);
+  return resolvedModel.startsWith('sonnet') ? 'high' : 'xhigh';
 }
 
 function extractVersion(value: string): [number, number, number] | null {
@@ -219,6 +237,7 @@ export function buildAgentInvocation(
       : config.permissionMode === 'full-access'
         ? 'bypassPermissions'
         : 'acceptEdits';
+    const model = resolveClaudeModel(config.model);
     const args = [
       '--print',
       '--output-format',
@@ -230,7 +249,9 @@ export function buildAgentInvocation(
       '--permission-mode',
       permissionMode,
       '--model',
-      resolveClaudeModel(config.model),
+      model,
+      '--effort',
+      resolveClaudeEffort(model, config.effort),
     ];
     return { command, args, stdin: prompt };
   }
