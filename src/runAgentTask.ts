@@ -2,6 +2,7 @@ import * as fs from 'fs/promises';
 import { createWriteStream, existsSync } from 'fs';
 import * as path from 'path';
 import { finished } from 'stream/promises';
+import { createHash } from 'crypto';
 
 import {
   buildAgentInvocation,
@@ -11,6 +12,7 @@ import { parseCommandLine } from './commandLine.js';
 import { getDiff, getDiffFiles, getDiffStat } from './git.js';
 import { findFilesOutsideRules, findRuleViolations } from './pathRules.js';
 import { parseAgentReport } from './report.js';
+import { buildWorkerEnvironment } from './routingPolicy.js';
 import {
   nowIso,
   readRunConfig,
@@ -70,6 +72,7 @@ async function collectDiffArtifacts(
   const changedFiles = await getDiffFiles(targetCwd, baseCommit);
   const diffStat = await getDiffStat(targetCwd, baseCommit);
   const patch = await getDiff(targetCwd, baseCommit);
+  const patchSha256 = createHash('sha256').update(patch, 'utf-8').digest('hex');
   await Promise.all([
     fs.writeFile(path.join(runDir, 'diff.stat.txt'), diffStat, {
       encoding: 'utf-8',
@@ -80,7 +83,7 @@ async function collectDiffArtifacts(
       mode: 0o600,
     }),
   ]);
-  return { changedFiles, diffStat };
+  return { changedFiles, diffStat, patchSha256 };
 }
 
 export async function executeAgentRun(
@@ -136,6 +139,11 @@ export async function executeAgentRun(
       stdoutStream,
       stderrStream,
       config.timeoutMs,
+      buildWorkerEnvironment(process.env, {
+        origin: config.dispatchOrigin ?? 'internal',
+        target: config.dispatchTarget ?? config.agent,
+        traceId: config.dispatchTraceId ?? config.runId,
+      }),
     );
     await Promise.allSettled([finished(stdoutStream), finished(stderrStream)]);
 
@@ -152,7 +160,7 @@ export async function executeAgentRun(
     })) {
       return;
     }
-    const { changedFiles, diffStat } = await collectDiffArtifacts(
+    const { changedFiles, diffStat, patchSha256 } = await collectDiffArtifacts(
       runDir,
       config.targetCwd,
       config.baseCommit,
@@ -171,6 +179,7 @@ export async function executeAgentRun(
           : 'Agent modified files outside allowed files',
         changedFiles,
         diffStat,
+        patchSha256,
         violatedFiles,
         outsideAllowedFiles,
         exitCode: agentResult.exitCode,
@@ -230,6 +239,7 @@ export async function executeAgentRun(
       currentPhase: 'completed',
       changedFiles,
       diffStat,
+      patchSha256,
       diffSummary: parsedReport?.implementation_summary || fallbackSummary,
       summary: parsedReport?.summary
         || parsedReport?.implementation_summary

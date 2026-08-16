@@ -2,5 +2,6 @@
 command = "/absolute/path/to/node"
 # PLEASE REPLACE WITH YOUR ACTUAL ABSOLUTE PATH
 args = ["/absolute/path/to/tools/codex-agy-delegator/dist/index.js"]
+env = { AGENT_DISPATCH_HOST = "codex", DISPATCH_DEPTH = "0" }
 startup_timeout_sec = 15.0
 tool_timeout_sec = 120.0

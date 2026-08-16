@@ -81,7 +81,7 @@ const tomlConfig = `
 [mcp_servers.codex-agent-delegator]
 command = "${nodePath}"
 args = ["${distIndex}"]
-env = { PATH = "${agentPath}" }
+env = { PATH = "${agentPath}", AGENT_DISPATCH_HOST = "codex", DISPATCH_DEPTH = "0" }
 startup_timeout_sec = 15.0
 tool_timeout_sec = 120.0
 `;

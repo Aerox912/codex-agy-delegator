@@ -1,10 +1,12 @@
 import * as fs from 'fs/promises';
 import { existsSync } from 'fs';
 import * as path from 'path';
+import { createHash } from 'crypto';
 
 import {
   applyPatch,
   checkPatch,
+  getHeadCommit,
   getGitRoot,
   hasUncommittedChanges,
 } from './git.js';
@@ -53,10 +55,18 @@ export async function applyAgentRun(args: ApplyAgentRunArgs) {
   if (await hasUncommittedChanges(root)) {
     throw new Error('Target repository must be clean before applying a delegated patch');
   }
+  if (await getHeadCommit(root) !== config.baseCommit) {
+    throw new Error('Target repository HEAD changed after delegation; refusing stale patch');
+  }
 
   const patchPath = path.join(runDir, 'diff.patch');
   if (!existsSync(patchPath)) throw new Error('Run patch is missing');
-  if (!(await fs.readFile(patchPath, 'utf-8')).trim()) {
+  const patch = await fs.readFile(patchPath);
+  const patchSha256 = createHash('sha256').update(patch).digest('hex');
+  if (!report.patchSha256 || patchSha256 !== report.patchSha256) {
+    throw new Error('Run patch hash does not match the reviewed report');
+  }
+  if (!patch.toString('utf-8').trim()) {
     const appliedAt = nowIso();
     await updateRunReport(runDir, { appliedAt });
     return {

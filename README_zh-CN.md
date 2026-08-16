@@ -1,5 +1,8 @@
 # Codex Agent Delegator
 
+> 注意：此翻译仍描述上游 0.2 版本。Aerox912 0.3 安全分支的主机白名单、
+> 单跳工作器边界和发布流程以 [English README](README.md) 为准。
+
 <div align="center">
   <a href="README.md">English</a> | <a href="README_zh-CN.md">简体中文</a>
 </div>

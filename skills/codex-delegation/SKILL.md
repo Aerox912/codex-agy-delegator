@@ -25,10 +25,10 @@ Before delegating, define:
 - the exact expected outcome;
 - narrow `allowedFiles` and appropriate `forbiddenFiles`;
 - acceptance commands in `testCommands`;
-- the backend: `agy`, `codex`, or `claude`;
+- one target exposed by the current host-specific server;
 - the least privilege needed.
 
-For `agent: "claude"`, `model` always resolves to a 1M-context alias.
+For `delegate_to_claude`, `model` always resolves to a 1M-context alias.
 Omitting it selects `sonnet[1m]`; accepted values are `sonnet`, `opus`,
 `fable`, or their explicit `sonnet[1m]` / `opus[1m]` / `fable[1m]` aliases
 (case-insensitive). Any `[200k]` variant of those three is upgraded to `[1m]`.
@@ -36,13 +36,13 @@ Every other value, including an unqualified 200K/default-context model name,
 is rejected.
 
 Use `permissionMode: "workspace-write"` and `useWorktree: true` for edits.
-Do not set `full-access` or `allowUnsafe` unless the user has authorized the
-specific risk. A custom backend always requires that explicit trust decision.
+The public MCP surface does not expose `full-access`, `allowUnsafe`, custom
+commands, or arbitrary agent arguments.
 
 ## Workflow
 
 1. Call `list_agent_backends` if backend availability is unknown.
-2. Call `delegate_to_agent` with a narrow task card.
+2. Call the available `delegate_to_<target>` tool with a narrow task card.
 3. For the default asynchronous mode, poll `get_agent_run_report` using the
    returned `runId`.
 4. Follow the review skill. Fetch logs or patches only when the compact report
@@ -56,7 +56,6 @@ specific risk. A custom backend always requires that explicit trust decision.
 {
   "repoPath": "/workspace/my-app",
   "task": "Convert model interfaces to exported type aliases without changing runtime code.",
-  "agent": "codex",
   "allowedFiles": ["src/models/*.ts"],
   "forbiddenFiles": ["src/models/legacy/**", ".env"],
   "testCommands": ["npm run typecheck"],

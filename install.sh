@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+REF="${1:-${CODEX_AGY_DELEGATOR_REF:-}}"
+if [[ ! "$REF" =~ ^(v[0-9]+\.[0-9]+\.[0-9]+|[0-9a-fA-F]{40})$ ]]; then
+  echo "Usage: install.sh <vX.Y.Z-or-40-character-commit>"
+  exit 1
+fi
+
 echo "=================================================="
 echo "Installing Codex Agent Delegator"
 echo "=================================================="
@@ -29,20 +35,22 @@ else
 fi
 
 if [ -d "$TARGET_DIR/.git" ]; then
-  echo "Updating existing installation in $TARGET_DIR..."
+  echo "Updating existing installation in $TARGET_DIR to $REF..."
   cd "$TARGET_DIR"
   if [ -n "$(git status --porcelain)" ]; then
     echo "Error: existing installation has local changes; refusing to overwrite them."
     exit 1
   fi
-  git pull --ff-only origin main
+  git fetch --quiet origin --tags
+  git checkout --quiet --detach "$REF"
 elif [ -e "$TARGET_DIR" ]; then
   echo "Error: $TARGET_DIR exists but is not a git checkout."
   exit 1
 else
   echo "Installing to $TARGET_DIR..."
-  git clone --quiet https://github.com/swjturay/codex-agy-delegator.git "$TARGET_DIR"
+  git clone --quiet https://github.com/Aerox912/codex-agy-delegator.git "$TARGET_DIR"
   cd "$TARGET_DIR"
+  git checkout --quiet --detach "$REF"
 fi
 
 echo "Installing locked dependencies..."
