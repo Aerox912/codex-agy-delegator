@@ -114,7 +114,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
             items: { type: 'string' },
             description: 'Custom executable args; supports {{prompt}}, {{cwd}}, and {{responsePath}}.',
           },
-          model: { type: 'string', description: 'Optional backend model override.' },
+          model: {
+            type: 'string',
+            description: 'Optional backend model override. For agent="claude", omitting this '
+              + 'selects sonnet[1m]; only sonnet, opus, fable, or their explicit [1m] aliases '
+              + '(sonnet[1m], opus[1m], fable[1m]) are accepted, case-insensitively, and any '
+              + '[200k] variant is upgraded to [1m]. Every other Claude model value is rejected.',
+          },
           permissionMode: {
             type: 'string',
             enum: ['read-only', 'workspace-write', 'full-access'],

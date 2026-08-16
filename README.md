@@ -33,6 +33,13 @@ agy tool names as compatibility aliases.
 `allowUnsafe: true`. A custom executable also requires that opt-in because the
 server cannot verify its sandbox.
 
+Claude Code runs always use a 1M-context model alias. Omitting `model` selects
+`sonnet[1m]`. Accepted values are `sonnet`, `opus`, `fable`, or the explicit
+`sonnet[1m]` / `opus[1m]` / `fable[1m]` aliases (matched
+case-insensitively); a `[200k]` variant of any of those three is automatically
+upgraded to `[1m]`. Any other value, including an unqualified 200K/default
+model name, is rejected.
+
 ## Requirements
 
 - macOS, Linux, or Windows
@@ -111,6 +118,9 @@ Legacy aliases remain available: `delegate_to_agy`, `get_agy_run_report`, and
   "testCommands": ["npm run lint:docs"]
 }
 ```
+
+`model` is optional here; omitting it uses `sonnet[1m]`. Pass `"model": "opus"`
+or `"model": "opus[1m]"` to select another 1M-context alias.
 
 Runs are asynchronous by default. Poll with:
 

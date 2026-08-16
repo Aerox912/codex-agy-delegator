@@ -31,6 +31,12 @@ v0.2.0 将原先仅支持 agy 的执行链路升级为通用代理链路，同�
 默认权限是 `workspace-write`。`full-access` 一定要显式设置
 `allowUnsafe: true`。自定义程序也必须显式确认，因为服务无法验证它的沙箱。
 
+Claude Code 运行始终使用 1M 上下文的模型别名。不传 `model` 时默认选择
+`sonnet[1m]`；可接受的取值是 `sonnet`、`opus`、`fable`，或显式的
+`sonnet[1m]` / `opus[1m]` / `fable[1m]` 别名（大小写不敏感匹配）；这三者的
+`[200k]` 变体会被自动升级为 `[1m]`。其他任何取值（包括未限定的 200K/默认
+上下文模型名）都会被拒绝。
+
 ## 环境要求
 
 - macOS、Linux 或 Windows
@@ -106,6 +112,9 @@ Mac 全新安装会使用系统惯例目录：
   "testCommands": ["npm run lint:docs"]
 }
 ```
+
+`model` 是可选参数；省略时使用 `sonnet[1m]`。可传入 `"model": "opus"` 或
+`"model": "opus[1m]"` 来选择其他 1M 上下文别名。
 
 默认异步执行。拿到 `runId` 后查询：
 

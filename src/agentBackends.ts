@@ -32,6 +32,23 @@ export interface AgentProbe {
 
 const MINIMUM_AGY_VERSION = [1, 1, 1] as const;
 
+const CLAUDE_1M_MODEL_PATTERN = /^(sonnet|opus|fable)(?:\[(1m|200k)\])?$/iu;
+const DEFAULT_CLAUDE_MODEL = 'sonnet[1m]';
+
+export function resolveClaudeModel(model?: string): string {
+  const trimmed = model?.trim();
+  if (!trimmed) return DEFAULT_CLAUDE_MODEL;
+  const match = CLAUDE_1M_MODEL_PATTERN.exec(trimmed);
+  if (!match) {
+    throw new Error(
+      `Unsupported claude model: "${model}". Use sonnet, opus, fable, or their `
+      + '1M-context aliases (sonnet[1m], opus[1m], fable[1m]). 200K/default-context '
+      + 'variants are not permitted.',
+    );
+  }
+  return `${match[1].toLowerCase()}[1m]`;
+}
+
 function extractVersion(value: string): [number, number, number] | null {
   const match = value.match(/(\d+)\.(\d+)\.(\d+)/u);
   if (!match) return null;
@@ -202,8 +219,9 @@ export function buildAgentInvocation(
       'json',
       '--permission-mode',
       permissionMode,
+      '--model',
+      resolveClaudeModel(config.model),
     ];
-    if (config.model) args.push('--model', config.model);
     return { command, args, stdin: prompt };
   }
 

@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   buildAgentInvocation,
   normalizeAgentOutput,
+  resolveClaudeModel,
   type AgentBackendConfig,
 } from '../src/agentBackends.js';
 
@@ -56,6 +57,103 @@ test('Claude invocation maps safe permission modes and normalizes JSON output', 
     normalizeAgentOutput('claude', JSON.stringify({ result: 'finished' })),
     'finished',
   );
+});
+
+test('resolveClaudeModel defaults to sonnet[1m] when the model is omitted or blank', () => {
+  assert.strictEqual(resolveClaudeModel(undefined), 'sonnet[1m]');
+  assert.strictEqual(resolveClaudeModel(''), 'sonnet[1m]');
+  assert.strictEqual(resolveClaudeModel('   '), 'sonnet[1m]');
+});
+
+test('resolveClaudeModel normalizes the three base aliases to their [1m] form', () => {
+  assert.strictEqual(resolveClaudeModel('sonnet'), 'sonnet[1m]');
+  assert.strictEqual(resolveClaudeModel('opus'), 'opus[1m]');
+  assert.strictEqual(resolveClaudeModel('fable'), 'fable[1m]');
+});
+
+test('resolveClaudeModel preserves already-normalized [1m] aliases idempotently', () => {
+  assert.strictEqual(resolveClaudeModel('sonnet[1m]'), 'sonnet[1m]');
+  assert.strictEqual(resolveClaudeModel('opus[1m]'), 'opus[1m]');
+  assert.strictEqual(resolveClaudeModel('fable[1m]'), 'fable[1m]');
+});
+
+test('resolveClaudeModel upgrades explicit [200k] variants to [1m]', () => {
+  assert.strictEqual(resolveClaudeModel('sonnet[200k]'), 'sonnet[1m]');
+  assert.strictEqual(resolveClaudeModel('opus[200k]'), 'opus[1m]');
+  assert.strictEqual(resolveClaudeModel('fable[200k]'), 'fable[1m]');
+});
+
+test('resolveClaudeModel normalizes case and surrounding whitespace', () => {
+  assert.strictEqual(resolveClaudeModel('SONNET'), 'sonnet[1m]');
+  assert.strictEqual(resolveClaudeModel('Opus[1M]'), 'opus[1m]');
+  assert.strictEqual(resolveClaudeModel('  Fable[200K]  '), 'fable[1m]');
+});
+
+test('resolveClaudeModel rejects unknown or unsupported model values', () => {
+  assert.throws(() => resolveClaudeModel('haiku'), /Unsupported claude model/u);
+  assert.throws(() => resolveClaudeModel('sonnet[2m]'), /Unsupported claude model/u);
+  assert.throws(() => resolveClaudeModel('claude-3-5-sonnet'), /Unsupported claude model/u);
+  assert.throws(() => resolveClaudeModel('gpt-4'), /Unsupported claude model/u);
+});
+
+test('Claude invocation always carries exactly one --model flag with a [1m] alias', () => {
+  const withoutModel = buildAgentInvocation(
+    config({ agent: 'claude' }),
+    'inspect',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  assert.deepStrictEqual(
+    withoutModel.args.filter((argument) => argument === '--model'),
+    ['--model'],
+  );
+  const modelIndex = withoutModel.args.indexOf('--model');
+  assert.strictEqual(withoutModel.args[modelIndex + 1], 'sonnet[1m]');
+
+  const withModel = buildAgentInvocation(
+    config({ agent: 'claude', model: 'OPUS[200k]' }),
+    'inspect',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  const upgradedIndex = withModel.args.indexOf('--model');
+  assert.strictEqual(withModel.args[upgradedIndex + 1], 'opus[1m]');
+
+  assert.throws(
+    () => buildAgentInvocation(
+      config({ agent: 'claude', model: 'haiku' }),
+      'inspect',
+      '/tmp/repo',
+      '/tmp/response.txt',
+    ),
+    /Unsupported claude model/u,
+  );
+});
+
+test('non-Claude backends pass the model through unnormalized', () => {
+  const codexInvocation = buildAgentInvocation(
+    config({ agent: 'codex', model: 'o3' }),
+    'edit',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  assert.ok(codexInvocation.args.includes('o3'));
+
+  const agyInvocation = buildAgentInvocation(
+    config({ agent: 'agy', model: 'gemini-pro' }),
+    'edit',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  assert.ok(agyInvocation.args.includes('gemini-pro'));
+
+  const codexWithoutModel = buildAgentInvocation(
+    config({ agent: 'codex' }),
+    'edit',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  assert.ok(!codexWithoutModel.args.includes('--model'));
 });
 
 test('agy uses its sandbox instead of skipping permissions', () => {

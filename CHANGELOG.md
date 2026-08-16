@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented here.
 
+## Unreleased
+
+### Security
+
+- Claude Code delegation now fails closed to 1M-context model aliases.
+  Omitting `model` selects `sonnet[1m]`; `sonnet`, `opus`, and `fable` (and
+  their `[1m]`/`[200k]` variants, case-insensitively) normalize or upgrade to
+  `sonnet[1m]` / `opus[1m]` / `fable[1m]`, and every other value is rejected
+  so a 200K/default-context lane can never be selected implicitly.
+
 ## 0.2.0 - 2026-07-25
 
 ### Added

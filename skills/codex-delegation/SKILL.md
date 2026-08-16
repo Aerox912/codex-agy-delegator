@@ -28,6 +28,13 @@ Before delegating, define:
 - the backend: `agy`, `codex`, or `claude`;
 - the least privilege needed.
 
+For `agent: "claude"`, `model` always resolves to a 1M-context alias.
+Omitting it selects `sonnet[1m]`; accepted values are `sonnet`, `opus`,
+`fable`, or their explicit `sonnet[1m]` / `opus[1m]` / `fable[1m]` aliases
+(case-insensitive). Any `[200k]` variant of those three is upgraded to `[1m]`.
+Every other value, including an unqualified 200K/default-context model name,
+is rejected.
+
 Use `permissionMode: "workspace-write"` and `useWorktree: true` for edits.
 Do not set `full-access` or `allowUnsafe` unless the user has authorized the
 specific risk. A custom backend always requires that explicit trust decision.
