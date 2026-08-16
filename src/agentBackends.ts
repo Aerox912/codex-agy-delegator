@@ -33,7 +33,12 @@ export interface AgentProbe {
 const MINIMUM_AGY_VERSION = [1, 1, 1] as const;
 
 const CLAUDE_1M_MODEL_PATTERN = /^(sonnet|opus|fable)(?:\[(1m|200k)\])?$/iu;
-const DEFAULT_CLAUDE_MODEL = 'sonnet[1m]';
+const DEFAULT_CLAUDE_MODEL = 'opus[1m]';
+const DEFAULT_AGY_MODEL = 'gemini-3.1-pro-high';
+
+export function resolveAgyModel(model?: string): string {
+  return model?.trim() || DEFAULT_AGY_MODEL;
+}
 
 export function resolveClaudeModel(model?: string): string {
   const trimmed = model?.trim();
@@ -181,7 +186,7 @@ export function buildAgentInvocation(
       args.push('--sandbox');
       args.push('--mode', config.permissionMode === 'read-only' ? 'plan' : 'accept-edits');
     }
-    if (config.model) args.push('--model', config.model);
+    args.push('--model', resolveAgyModel(config.model));
     args.push('--disable-slash-commands');
     args.push('--print-timeout', `${Math.max(1, Math.ceil(config.timeoutMs / 1000))}s`);
     args.push('--print', prompt);

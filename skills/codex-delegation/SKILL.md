@@ -29,11 +29,14 @@ Before delegating, define:
 - the least privilege needed.
 
 For `delegate_to_claude`, `model` always resolves to a 1M-context alias.
-Omitting it selects `sonnet[1m]`; accepted values are `sonnet`, `opus`,
-`fable`, or their explicit `sonnet[1m]` / `opus[1m]` / `fable[1m]` aliases
-(case-insensitive). Any `[200k]` variant of those three is upgraded to `[1m]`.
-Every other value, including an unqualified 200K/default-context model name,
-is rejected.
+Omitting it selects `opus[1m]`. Use `sonnet` or `sonnet[1m]` for small tasks.
+Accepted values are `sonnet`, `opus`, `fable`, or their explicit
+`sonnet[1m]` / `opus[1m]` / `fable[1m]` aliases (case-insensitive). Any `[200k]`
+variant of those three is upgraded to `[1m]`. Every other value is rejected.
+
+For `delegate_to_agy`, omitting `model` selects `gemini-3.1-pro-high`.
+An explicit Agy model override is passed through after surrounding whitespace
+is removed.
 
 Use `permissionMode: "workspace-write"` and `useWorktree: true` for edits.
 The public MCP surface does not expose `full-access`, `allowUnsafe`, custom

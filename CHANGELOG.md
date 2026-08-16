@@ -7,9 +7,12 @@ All notable changes to this project are documented here.
 ### Security
 
 - Claude Code delegation now fails closed to 1M-context model aliases.
-  Omitting `model` selects `sonnet[1m]`; `sonnet`, `opus`, and `fable` and
-  their `[1m]` or `[200k]` variants normalize to the corresponding `[1m]`
-  alias. Every other Claude model value is rejected.
+  Omitting `model` selects `opus[1m]`; `sonnet` selects `sonnet[1m]` for small
+  tasks. The `sonnet`, `opus`, and `fable` aliases and their `[1m]` or `[200k]`
+  variants normalize to the corresponding `[1m]` alias. Every other Claude
+  model value is rejected.
+- Agy delegation now passes an explicit model on every run, defaulting to the
+  installed CLI's `gemini-3.1-pro-high` alias while preserving overrides.
 
 ## 0.3.0 - 2026-08-16
 

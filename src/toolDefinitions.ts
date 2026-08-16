@@ -77,11 +77,16 @@ function delegateTool(target: DispatchHost) {
     model: target === 'claude'
       ? {
         type: 'string',
-        description: 'Optional Claude model alias. Defaults to sonnet[1m]. '
-          + 'sonnet, opus, fable, and their [1m] or [200k] aliases always resolve '
-          + 'to the corresponding [1m] alias; every other value is rejected.',
+        description: 'Optional Claude model alias. Defaults to opus[1m]; use sonnet '
+          + 'for small tasks. sonnet, opus, fable, and their [1m] or [200k] aliases '
+          + 'always resolve to the corresponding [1m] alias; every other value is rejected.',
       }
-      : commonDelegateProperties.model,
+      : target === 'agy'
+        ? {
+          type: 'string',
+          description: 'Optional Agy model override. Defaults to gemini-3.1-pro-high.',
+        }
+        : commonDelegateProperties.model,
   };
   return {
     name: `delegate_to_${target}`,

@@ -44,8 +44,18 @@ test('Claude dispatch tool documents the enforced 1M model policy', () => {
   );
   assert.match(delegate?.description ?? '', /1M-context/u);
   const properties = delegate?.inputSchema.properties as Record<string, any>;
-  assert.match(properties.model.description, /sonnet\[1m\]/u);
+  assert.match(properties.model.description, /opus\[1m\]/u);
+  assert.match(properties.model.description, /small tasks/u);
   assert.match(properties.model.description, /every other value is rejected/u);
+});
+
+test('Agy dispatch tool documents the Gemini 3.1 Pro default', () => {
+  const context = readDispatchContext({ AGENT_DISPATCH_HOST: 'codex' });
+  const delegate = buildToolDefinitions(context).find(
+    (tool) => tool.name === 'delegate_to_agy',
+  );
+  const properties = delegate?.inputSchema.properties as Record<string, any>;
+  assert.match(properties.model.description, /gemini-3\.1-pro-high/u);
 });
 
 test('Agy reverse routes require an explicit promotion gate', () => {

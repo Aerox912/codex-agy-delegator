@@ -35,10 +35,15 @@ v0.2.0 将原先仅支持 agy 的执行链路升级为通用代理链路，同�
 `allowUnsafe: true`。自定义程序也必须显式确认，因为服务无法验证它的沙箱。
 
 Claude Code 运行始终使用 1M 上下文的模型别名。不传 `model` 时默认选择
-`sonnet[1m]`；可接受的取值是 `sonnet`、`opus`、`fable`，或显式的
+`opus[1m]`；小任务可传入 `sonnet` 或 `sonnet[1m]`。可接受的取值是
+`sonnet`、`opus`、`fable`，或显式的
 `sonnet[1m]` / `opus[1m]` / `fable[1m]` 别名（大小写不敏感匹配）；这三者的
 `[200k]` 变体会被自动升级为 `[1m]`。其他任何取值（包括未限定的 200K/默认
 上下文模型名）都会被拒绝。
+
+Agy 运行也会始终显式传入模型。不传 `model` 时默认使用当前 Agy CLI 提供的
+Gemini 3.1 Pro High 别名 `gemini-3.1-pro-high`；显式传入的其他 Agy 模型仍会
+保留。
 
 ## 环境要求
 
@@ -116,8 +121,8 @@ Mac 全新安装会使用系统惯例目录：
 }
 ```
 
-`model` 是可选参数；省略时使用 `sonnet[1m]`。可传入 `"model": "opus"` 或
-`"model": "opus[1m]"` 来选择其他 1M 上下文别名。
+`model` 是可选参数；Claude 省略时使用 `opus[1m]`，小任务可传入
+`"model": "sonnet"`。Agy 省略时使用 `gemini-3.1-pro-high`。
 
 默认异步执行。拿到 `runId` 后查询：
 

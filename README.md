@@ -33,18 +33,23 @@ exposed over MCP. A delegated agent receives `DISPATCH_WORKER_BOUNDARY=1` and
 instance exposes no tools and rejects direct calls.
 
 Every `delegate_to_claude` run uses a 1M-context model alias. Omitting `model`
-selects `sonnet[1m]`. Accepted values are `sonnet`, `opus`, `fable`, their
+selects `opus[1m]`; pass `sonnet` or `sonnet[1m]` for small tasks. Accepted
+values are `sonnet`, `opus`, `fable`, their
 explicit `[1m]` aliases, or their `[200k]` aliases; matching is case-insensitive
 and every accepted value resolves to `sonnet[1m]`, `opus[1m]`, or `fable[1m]`.
 All other Claude model values are rejected.
+
+Every `delegate_to_agy` run also includes an explicit model. Omitting `model`
+selects the installed Agy CLI's Gemini 3.1 Pro High alias,
+`gemini-3.1-pro-high`; explicit Agy model overrides remain supported.
 
 ## Worker isolation
 
 | Backend | Default execution boundary |
 | --- | --- |
-| Agy 1.1.1+ | `--sandbox --mode accept-edits --disable-slash-commands` |
+| Agy 1.1.1+ | `--sandbox --mode accept-edits --model gemini-3.1-pro-high --disable-slash-commands` |
 | Codex | `exec --ephemeral --ignore-user-config --sandbox workspace-write` |
-| Claude Code | `--strict-mcp-config --mcp-config {"mcpServers":{}} --no-session-persistence --permission-mode acceptEdits --model sonnet[1m]` |
+| Claude Code | `--strict-mcp-config --mcp-config {"mcpServers":{}} --no-session-persistence --permission-mode acceptEdits --model opus[1m]` |
 
 Each run uses a generated Git worktree by default. The server persists task,
 report, log, diff, and patch artifacts, validates file allow/deny rules, runs
@@ -73,8 +78,9 @@ Example from a Codex host:
 }
 ```
 
-Submit this to `delegate_to_claude` or `delegate_to_agy`. For Claude, add
-`"model": "opus"` or `"model": "fable[1m]"` to select another 1M alias.
+Submit this to `delegate_to_claude` or `delegate_to_agy`. For a small Claude
+task, add `"model": "sonnet"`; for a different Agy lane, pass its exact model
+ID from `agy models`.
 Runs are asynchronous unless `waitForCompletion` is true. Review the returned
 run with `get_agent_run_report`, then call `apply_agent_run` with `confirm: true`.
 Blocked runs cannot be applied.

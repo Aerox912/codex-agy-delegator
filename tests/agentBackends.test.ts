@@ -4,6 +4,7 @@ import test from 'node:test';
 import {
   buildAgentInvocation,
   normalizeAgentOutput,
+  resolveAgyModel,
   resolveClaudeModel,
   type AgentBackendConfig,
 } from '../src/agentBackends.js';
@@ -62,10 +63,10 @@ test('Claude invocation maps safe permission modes and normalizes JSON output', 
   );
 });
 
-test('resolveClaudeModel defaults to sonnet[1m] when the model is omitted or blank', () => {
-  assert.strictEqual(resolveClaudeModel(undefined), 'sonnet[1m]');
-  assert.strictEqual(resolveClaudeModel(''), 'sonnet[1m]');
-  assert.strictEqual(resolveClaudeModel('   '), 'sonnet[1m]');
+test('resolveClaudeModel defaults to opus[1m] when the model is omitted or blank', () => {
+  assert.strictEqual(resolveClaudeModel(undefined), 'opus[1m]');
+  assert.strictEqual(resolveClaudeModel(''), 'opus[1m]');
+  assert.strictEqual(resolveClaudeModel('   '), 'opus[1m]');
 });
 
 test('resolveClaudeModel normalizes the three base aliases to their [1m] form', () => {
@@ -111,7 +112,7 @@ test('Claude invocation always carries exactly one --model flag with a [1m] alia
     ['--model'],
   );
   const modelIndex = withoutModel.args.indexOf('--model');
-  assert.strictEqual(withoutModel.args[modelIndex + 1], 'sonnet[1m]');
+  assert.strictEqual(withoutModel.args[modelIndex + 1], 'opus[1m]');
 
   const withModel = buildAgentInvocation(
     config({ agent: 'claude', model: 'OPUS[200k]' }),
@@ -131,6 +132,40 @@ test('Claude invocation always carries exactly one --model flag with a [1m] alia
     ),
     /Unsupported claude model/u,
   );
+});
+
+test('resolveAgyModel defaults to Gemini 3.1 Pro High and preserves explicit overrides', () => {
+  assert.strictEqual(resolveAgyModel(undefined), 'gemini-3.1-pro-high');
+  assert.strictEqual(resolveAgyModel(''), 'gemini-3.1-pro-high');
+  assert.strictEqual(resolveAgyModel('   '), 'gemini-3.1-pro-high');
+  assert.strictEqual(
+    resolveAgyModel('  gemini-3.1-pro-low  '),
+    'gemini-3.1-pro-low',
+  );
+});
+
+test('Agy invocation always carries exactly one --model flag with the configured default', () => {
+  const withoutModel = buildAgentInvocation(
+    config({ agent: 'agy' }),
+    'edit',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  assert.deepStrictEqual(
+    withoutModel.args.filter((argument) => argument === '--model'),
+    ['--model'],
+  );
+  const modelIndex = withoutModel.args.indexOf('--model');
+  assert.strictEqual(withoutModel.args[modelIndex + 1], 'gemini-3.1-pro-high');
+
+  const withModel = buildAgentInvocation(
+    config({ agent: 'agy', model: 'gemini-3.7-flash-low' }),
+    'edit',
+    '/tmp/repo',
+    '/tmp/response.txt',
+  );
+  const overrideIndex = withModel.args.indexOf('--model');
+  assert.strictEqual(withModel.args[overrideIndex + 1], 'gemini-3.7-flash-low');
 });
 
 test('non-Claude backends pass the model through unnormalized', () => {
