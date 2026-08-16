@@ -1,0 +1,2 @@
+export const DEFAULT_AGENT_TIMEOUT_MS = 45 * 60 * 1_000;
+export const DEFAULT_TEST_TIMEOUT_MS = 15 * 60 * 1_000;

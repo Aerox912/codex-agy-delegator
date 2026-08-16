@@ -85,6 +85,9 @@ Runs are asynchronous unless `waitForCompletion` is true. Review the returned
 run with `get_agent_run_report`, then call `apply_agent_run` with `confirm: true`.
 Blocked runs cannot be applied.
 
+Agent execution defaults to 45 minutes. Each verification command defaults to
+15 minutes. Override these independently with `timeoutMs` and `testTimeoutMs`.
+
 ## Build
 
 Requirements are Node.js 20 or newer and Git:

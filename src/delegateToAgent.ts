@@ -36,6 +36,10 @@ import {
   resolveNewWorktreePath,
 } from './runPaths.js';
 import { executeAgentRun } from './runAgentTask.js';
+import {
+  DEFAULT_AGENT_TIMEOUT_MS,
+  DEFAULT_TEST_TIMEOUT_MS,
+} from './runTimeouts.js';
 import { killProcessTree, tailString } from './shell.js';
 
 export type ResponseMode = 'compact' | 'standard' | 'full';
@@ -299,13 +303,13 @@ export async function delegateToAgent(args: DelegateAgentArgs): Promise<any> {
 
   const timeoutMs = requireIntegerInRange(
     'timeoutMs',
-    args.timeoutMs ?? 900_000,
+    args.timeoutMs ?? DEFAULT_AGENT_TIMEOUT_MS,
     1_000,
     86_400_000,
   );
   const testTimeoutMs = requireIntegerInRange(
     'testTimeoutMs',
-    args.testTimeoutMs ?? 300_000,
+    args.testTimeoutMs ?? DEFAULT_TEST_TIMEOUT_MS,
     1_000,
     86_400_000,
   );

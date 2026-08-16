@@ -4,6 +4,11 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+### Changed
+
+- Tripled the default agent timeout to 45 minutes and the per-command
+  verification timeout to 15 minutes.
+
 ### Security
 
 - Claude Code delegation now fails closed to 1M-context model aliases.

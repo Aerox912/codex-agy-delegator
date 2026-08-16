@@ -94,6 +94,9 @@ Mac 全新安装会使用系统惯例目录：
 `delegate_to_agent` 要求明确传入 `agent`；旧的 `delegate_to_agy`
 别名始终选择 Antigravity。
 
+代理执行默认超时为 45 分钟。每条验证命令默认超时为 15 分钟。可分别使用
+`timeoutMs` 和 `testTimeoutMs` 覆盖这两个默认值。
+
 ### 委派给 Codex
 
 ```json

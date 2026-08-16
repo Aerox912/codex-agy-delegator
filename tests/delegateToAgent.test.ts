@@ -68,6 +68,11 @@ test('custom backend completes, applies, and cleans up an isolated run', async (
   assert.strictEqual(result.status, 'success');
   assert.deepStrictEqual(result.changedFiles, ['result.txt']);
   assert.strictEqual(existsSync(path.join(repoPath, 'result.txt')), false);
+  const runConfig = JSON.parse(
+    await fs.readFile(path.join(result.rawReportPath, 'run.config.json'), 'utf-8'),
+  );
+  assert.strictEqual(runConfig.timeoutMs, 2_700_000);
+  assert.strictEqual(runConfig.testTimeoutMs, 900_000);
 
   const applyResult = await applyAgentRun({
     repoPath,

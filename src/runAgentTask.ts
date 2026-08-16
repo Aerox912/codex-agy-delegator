@@ -21,6 +21,7 @@ import {
   updateRunReport,
   writeRunReport,
 } from './runArtifacts.js';
+import { DEFAULT_TEST_TIMEOUT_MS } from './runTimeouts.js';
 import { runCommand, tailString, waitForProcess } from './shell.js';
 
 async function setRunPhase(
@@ -96,7 +97,7 @@ export async function executeAgentRun(
     ...storedConfig,
     schemaVersion: 2 as const,
     baseCommit: storedConfig.baseCommit ?? 'HEAD',
-    testTimeoutMs: storedConfig.testTimeoutMs ?? 300_000,
+    testTimeoutMs: storedConfig.testTimeoutMs ?? DEFAULT_TEST_TIMEOUT_MS,
     agent: storedConfig.agent ?? 'agy',
     agentVersion: storedConfig.agentVersion ?? null,
     permissionMode: storedConfig.permissionMode ?? 'workspace-write',

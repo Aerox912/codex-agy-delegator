@@ -19,8 +19,14 @@ const commonDelegateProperties = {
     items: { type: 'string' },
     description: 'Verification commands executed without a shell.',
   },
-  timeoutMs: { type: 'number', description: 'Agent timeout in milliseconds.' },
-  testTimeoutMs: { type: 'number', description: 'Timeout per test command in milliseconds.' },
+  timeoutMs: {
+    type: 'number',
+    description: 'Agent timeout in milliseconds. Defaults to 45 minutes.',
+  },
+  testTimeoutMs: {
+    type: 'number',
+    description: 'Timeout per test command in milliseconds. Defaults to 15 minutes.',
+  },
   useWorktree: {
     type: 'boolean',
     description: 'Use an isolated git worktree. Defaults to true.',
