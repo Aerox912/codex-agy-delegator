@@ -1,6 +1,6 @@
 {
   "name": "codex-agy-delegator",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Host-scoped, worktree-isolated MCP delegation between Antigravity, Codex, and Claude",
   "license": "MIT",
   "engines": {

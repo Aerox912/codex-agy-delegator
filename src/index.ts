@@ -26,7 +26,7 @@ const dispatchContext = readDispatchContext();
 const server = new Server(
   {
     name: 'codex-agy-delegator',
-    version: '0.3.0',
+    version: '0.3.1',
   },
   { capabilities: { tools: {} } },
 );

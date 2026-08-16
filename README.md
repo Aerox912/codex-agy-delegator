@@ -114,11 +114,11 @@ setup remains available with `npm run setup`; it sets
 The standalone installers require an explicit release tag or full commit:
 
 ```powershell
-.\install.ps1 -Ref v0.3.0
+.\install.ps1 -Ref v0.3.1
 ```
 
 ```bash
-./install.sh v0.3.0
+./install.sh v0.3.1
 ```
 
 ## Releases and updates

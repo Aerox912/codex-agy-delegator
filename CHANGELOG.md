@@ -4,6 +4,8 @@ All notable changes to this project are documented here.
 
 ## Unreleased
 
+## 0.3.1 - 2026-08-16
+
 ### Changed
 
 - Tripled the default agent timeout to 45 minutes and the per-command
