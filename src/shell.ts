@@ -90,6 +90,7 @@ export function waitForProcess(
   stdoutStream: NodeJS.WritableStream,
   stderrStream: NodeJS.WritableStream,
   timeoutMs: number,
+  environment: NodeJS.ProcessEnv = process.env,
 ): Promise<{ exitCode: number | null; timedOut: boolean }> {
   return new Promise((resolve, reject) => {
     let timedOut = false;
@@ -99,7 +100,7 @@ export function waitForProcess(
       shell: false,
       windowsHide: true,
       stdio: ['pipe', 'pipe', 'pipe'],
-      env: process.env,
+      env: environment,
     });
 
     child.once('error', reject);

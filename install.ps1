@@ -1,3 +1,10 @@
+[CmdletBinding()]
+param(
+    [Parameter(Mandatory)]
+    [ValidatePattern('^(v\d+\.\d+\.\d+|[0-9a-fA-F]{40})$')]
+    [string]$Ref
+)
+
 $ErrorActionPreference = "Stop"
 
 Write-Host "==================================================" -ForegroundColor Cyan
@@ -25,20 +32,22 @@ if (Test-Path (Join-Path $LegacyTarget ".git")) {
 }
 
 if (Test-Path (Join-Path $TargetDir ".git")) {
-    Write-Host "Updating existing installation in $TargetDir..." -ForegroundColor Yellow
+    Write-Host "Updating existing installation in $TargetDir to $Ref..." -ForegroundColor Yellow
     Set-Location $TargetDir
     if (git status --porcelain) {
         Write-Host "Error: existing installation has local changes; refusing to overwrite them." -ForegroundColor Red
         exit 1
     }
-    git pull --ff-only origin main
+    git fetch --quiet origin --tags
+    git checkout --quiet --detach $Ref
 } elseif (Test-Path $TargetDir) {
     Write-Host "Error: $TargetDir exists but is not a git checkout." -ForegroundColor Red
     exit 1
 } else {
     Write-Host "Installing to $TargetDir..." -ForegroundColor Yellow
-    git clone --quiet https://github.com/swjturay/codex-agy-delegator.git $TargetDir
+    git clone --quiet https://github.com/Aerox912/codex-agy-delegator.git $TargetDir
     Set-Location $TargetDir
+    git checkout --quiet --detach $Ref
 }
 
 Write-Host "Installing locked dependencies..." -ForegroundColor Yellow

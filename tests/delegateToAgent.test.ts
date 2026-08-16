@@ -88,6 +88,52 @@ test('custom backend completes, applies, and cleans up an isolated run', async (
   assert.strictEqual(existsSync(result.worktreePath as string), false);
 });
 
+test('apply rejects a patch changed after review', async () => {
+  const repoPath = await createTempRepo();
+  const fakeAgent = await createFakeAgent();
+  const result = await delegateToAgent({
+    repoPath,
+    task: 'Create result.txt',
+    agent: 'custom',
+    agentCommand: process.execPath,
+    agentArgs: [fakeAgent, '{{cwd}}'],
+    allowUnsafe: true,
+    allowedFiles: ['result.txt'],
+    waitForCompletion: true,
+    responseMode: 'full',
+  });
+
+  await fs.appendFile(path.join(result.rawReportPath, 'diff.patch'), '\n# tampered\n', 'utf-8');
+  await assert.rejects(
+    applyAgentRun({ repoPath, runId: result.runId, confirm: true }),
+    /patch hash/u,
+  );
+});
+
+test('apply rejects target HEAD drift after review', async () => {
+  const repoPath = await createTempRepo();
+  const fakeAgent = await createFakeAgent();
+  const result = await delegateToAgent({
+    repoPath,
+    task: 'Create result.txt',
+    agent: 'custom',
+    agentCommand: process.execPath,
+    agentArgs: [fakeAgent, '{{cwd}}'],
+    allowUnsafe: true,
+    allowedFiles: ['result.txt'],
+    waitForCompletion: true,
+    responseMode: 'full',
+  });
+
+  await fs.appendFile(path.join(repoPath, 'README.md'), 'advanced\n', 'utf-8');
+  git(['add', 'README.md'], repoPath);
+  git(['commit', '-m', 'advance target'], repoPath);
+  await assert.rejects(
+    applyAgentRun({ repoPath, runId: result.runId, confirm: true }),
+    /HEAD changed/u,
+  );
+});
+
 test('dry runs create no managed run directory', async () => {
   const repoPath = await createTempRepo();
   const fakeAgent = await createFakeAgent();

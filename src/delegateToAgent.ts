@@ -62,6 +62,8 @@ export interface DelegateAgentArgs {
   maxTestTailLines?: number;
   includeDiffStat?: boolean;
   waitForCompletion?: boolean;
+  dispatchOrigin?: Exclude<AgentKind, 'custom'> | 'internal';
+  dispatchTraceId?: string;
 }
 
 function capString(value: string, maxChars: number): string {
@@ -112,6 +114,7 @@ export function formatRunReport(
       files: report.changedFiles.slice(0, maxFiles),
       omitted: Math.max(0, report.changedFiles.length - maxFiles),
     },
+    patchSha256: report.patchSha256,
     tests: compactTests(report.tests, responseMode !== 'compact'),
     summary: report.summary,
     riskNotes: report.riskNotes,
@@ -159,6 +162,7 @@ ${forbiddenFiles.length > 0
 # Worker instructions
 You are the ${agent} coding worker. Make minimal, precise changes and obey every file constraint.
 Do not commit, push, or modify files outside this repository.
+You are a leaf worker. Do not call any dispatch or delegation MCP tool.
 End the final response with exactly one fenced JSON block using this shape:
 \`\`\`json
 {"summary":"","risk_notes":[],"review_focus":[],"assumptions":[]}
@@ -311,6 +315,8 @@ export async function delegateToAgent(args: DelegateAgentArgs): Promise<any> {
   const agentArgs = validateStringArray('agentArgs', args.agentArgs ?? []);
   const useWorktree = args.useWorktree ?? true;
   const allowUnsafe = args.allowUnsafe ?? false;
+  const dispatchOrigin = args.dispatchOrigin ?? 'internal';
+  const dispatchTraceId = args.dispatchTraceId ?? randomBytes(16).toString('hex');
   if (
     args.responseMode !== undefined
     && !['compact', 'standard', 'full'].includes(args.responseMode)
@@ -374,6 +380,9 @@ export async function delegateToAgent(args: DelegateAgentArgs): Promise<any> {
       targetCwd: root,
       command: displayCommand(validationInvocation),
       createsArtifacts: false,
+      dispatchOrigin,
+      dispatchTarget: agent,
+      dispatchTraceId,
     };
   }
 
@@ -419,6 +428,10 @@ export async function delegateToAgent(args: DelegateAgentArgs): Promise<any> {
       model: args.model,
       permissionMode,
       allowUnsafe,
+      dispatchOrigin,
+      dispatchTarget: agent,
+      dispatchTraceId,
+      dispatchDepth: 1,
     };
 
     await fs.writeFile(path.join(runDir, 'task.md'), taskContent, {

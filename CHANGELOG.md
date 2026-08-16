@@ -2,6 +2,30 @@
 
 All notable changes to this project are documented here.
 
+## 0.3.0 - 2026-08-16
+
+### Added
+
+- Host-specific Codex, Claude, and Agy dispatch matrices.
+- A hard-off promotion gate for Agy-originated reverse routes.
+- Target-specific MCP tools and fail-closed host identity validation.
+- One-hop worker boundary enforcement through inherited environment state.
+- Strict empty-MCP Claude child configuration and Agy slash-command isolation.
+- Origin, target, depth, and trace metadata for delegated runs.
+- Patch SHA-256 and target-base verification at explicit apply time.
+- Windows-built, checksum-verifiable GitHub release artifacts with an SBOM and
+  recorded dependency-lock hash.
+- Node 20/22 CI coverage and Dependabot update checks.
+
+### Changed
+
+- Removed the unrestricted generic and legacy dispatch tools from the MCP
+  surface. Internal custom execution remains test-only and is not remotely
+  selectable.
+- Limited public dispatch permissions to read-only and workspace-write.
+- Updated the locked dependency graph; the production audit reports no known
+  vulnerabilities.
+
 ## 0.2.0 - 2026-07-25
 
 ### Added

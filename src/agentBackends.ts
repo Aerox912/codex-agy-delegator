@@ -165,6 +165,7 @@ export function buildAgentInvocation(
       args.push('--mode', config.permissionMode === 'read-only' ? 'plan' : 'accept-edits');
     }
     if (config.model) args.push('--model', config.model);
+    args.push('--disable-slash-commands');
     args.push('--print-timeout', `${Math.max(1, Math.ceil(config.timeoutMs / 1000))}s`);
     args.push('--print', prompt);
     return { command, args, stdin: null };
@@ -200,6 +201,10 @@ export function buildAgentInvocation(
       '--print',
       '--output-format',
       'json',
+      '--strict-mcp-config',
+      '--mcp-config',
+      '{"mcpServers":{}}',
+      '--no-session-persistence',
       '--permission-mode',
       permissionMode,
     ];

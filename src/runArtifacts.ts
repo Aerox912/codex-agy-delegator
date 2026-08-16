@@ -45,6 +45,10 @@ export interface RunConfig {
   model?: string;
   permissionMode: AgentPermissionMode;
   allowUnsafe: boolean;
+  dispatchOrigin?: Exclude<AgentKind, 'custom'> | 'internal';
+  dispatchTarget?: AgentKind;
+  dispatchTraceId?: string;
+  dispatchDepth?: number;
 }
 
 export interface RunReport {
@@ -53,10 +57,15 @@ export interface RunReport {
   runId: string;
   agent: AgentKind;
   agentVersion: string | null;
+  dispatchOrigin?: Exclude<AgentKind, 'custom'> | 'internal';
+  dispatchTarget?: AgentKind;
+  dispatchTraceId?: string;
+  dispatchDepth?: number;
   branch: string;
   worktreePath: string | null;
   changedFiles: string[];
   diffStat?: string;
+  patchSha256?: string;
   diffSummary?: string;
   summary: string;
   tests: TestResult[];
@@ -96,9 +105,14 @@ export function createInitialRunReport(config: RunConfig): RunReport {
     runId: config.runId,
     agent: config.agent ?? 'agy',
     agentVersion: config.agentVersion ?? null,
+    dispatchOrigin: config.dispatchOrigin,
+    dispatchTarget: config.dispatchTarget ?? config.agent,
+    dispatchTraceId: config.dispatchTraceId,
+    dispatchDepth: config.dispatchDepth,
     branch: config.branchName,
     worktreePath: config.worktreePath,
     changedFiles: [],
+    patchSha256: undefined,
     summary: 'Run queued. Poll get_agent_run_report for progress.',
     tests: [],
     riskNotes: [],

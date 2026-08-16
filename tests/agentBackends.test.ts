@@ -52,6 +52,9 @@ test('Claude invocation maps safe permission modes and normalizes JSON output', 
   );
 
   assert.ok(invocation.args.includes('plan'));
+  assert.ok(invocation.args.includes('--strict-mcp-config'));
+  assert.ok(invocation.args.includes('{"mcpServers":{}}'));
+  assert.ok(invocation.args.includes('--no-session-persistence'));
   assert.strictEqual(
     normalizeAgentOutput('claude', JSON.stringify({ result: 'finished' })),
     'finished',
@@ -67,6 +70,7 @@ test('agy uses its sandbox instead of skipping permissions', () => {
   );
 
   assert.ok(invocation.args.includes('--sandbox'));
+  assert.ok(invocation.args.includes('--disable-slash-commands'));
   assert.ok(!invocation.args.includes('--dangerously-skip-permissions'));
 });
 

@@ -7,273 +7,32 @@ import {
   McpError,
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { listAgentBackends } from './agentBackends.js';
+import { listAgentBackends, type AgentKind } from './agentBackends.js';
 import { applyAgentRun, type ApplyAgentRunArgs } from './applyAgentRun.js';
 import { cleanupAgentRun } from './cleanupAgentRun.js';
-import { cleanupAgyRun } from './cleanupAgyRun.js';
-import {
-  delegateToAgent,
-  type DelegateAgentArgs,
-} from './delegateToAgent.js';
-import { delegateToAgy, type DelegateArgs } from './delegateToAgy.js';
+import { delegateToAgent, type DelegateAgentArgs } from './delegateToAgent.js';
 import { getAgentRunReport } from './getAgentRunReport.js';
-import { getAgyRunReport } from './getAgyRunReport.js';
+import {
+  assertDispatchAllowed,
+  assertDispatcherActive,
+  readDispatchContext,
+  type DispatchHost,
+} from './routingPolicy.js';
 import { executeAgentRun } from './runAgentTask.js';
+import { buildToolDefinitions } from './toolDefinitions.js';
+
+const dispatchContext = readDispatchContext();
 
 const server = new Server(
   {
-    name: 'codex-agent-delegator',
-    version: '0.2.0',
+    name: 'codex-agy-delegator',
+    version: '0.3.0',
   },
   { capabilities: { tools: {} } },
 );
 
-const commonDelegateProperties = {
-  repoPath: { type: 'string', description: 'Absolute path to the target git repository.' },
-  task: { type: 'string', description: 'Task instruction for the delegated agent.' },
-  allowedFiles: {
-    type: 'array',
-    items: { type: 'string' },
-    description: 'Optional allowed file paths or globs.',
-  },
-  forbiddenFiles: {
-    type: 'array',
-    items: { type: 'string' },
-    description: 'Optional forbidden file paths or globs.',
-  },
-  testCommands: {
-    type: 'array',
-    items: { type: 'string' },
-    description: 'Verification commands executed without a shell.',
-  },
-  timeoutMs: { type: 'number', description: 'Agent timeout in milliseconds.' },
-  testTimeoutMs: { type: 'number', description: 'Timeout per test command in milliseconds.' },
-  useWorktree: {
-    type: 'boolean',
-    description: 'Use an isolated git worktree. Defaults to true.',
-  },
-  branchPrefix: { type: 'string', description: 'Prefix for the temporary branch.' },
-  dryRun: {
-    type: 'boolean',
-    description: 'Validate and show the invocation without creating artifacts.',
-  },
-  responseMode: {
-    type: 'string',
-    enum: ['compact', 'standard', 'full'],
-    description: 'Response detail. Defaults to compact.',
-  },
-  maxFiles: { type: 'number', description: 'Maximum files in compact responses.' },
-  maxTestTailLines: {
-    type: 'number',
-    description: 'Maximum test output tail lines retained.',
-  },
-  includeDiffStat: {
-    type: 'boolean',
-    description: 'Include a capped diff stat in compact responses.',
-  },
-  waitForCompletion: {
-    type: 'boolean',
-    description: 'Wait for completion instead of returning a background run ID.',
-  },
-} as const;
-
-const reportProperties = {
-  repoPath: { type: 'string', description: 'Absolute path to the repository.' },
-  runId: { type: 'string', description: 'Delegated run ID.' },
-  detail: {
-    type: 'string',
-    enum: ['compact', 'full', 'logs', 'diffStat', 'patch'],
-    description: 'Report detail. Defaults to compact.',
-  },
-  maxBytes: {
-    type: 'number',
-    description: 'Maximum bytes for logs, diff stat, or patch.',
-  },
-} as const;
-
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: 'delegate_to_agent',
-      description: 'Delegate a coding task to agy, Codex, Claude, or an explicit custom executable.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          ...commonDelegateProperties,
-          agent: {
-            type: 'string',
-            enum: ['agy', 'codex', 'claude', 'custom'],
-            description: 'Agent backend.',
-          },
-          agentCommand: {
-            type: 'string',
-            description: 'Executable for a custom agent.',
-          },
-          agentArgs: {
-            type: 'array',
-            items: { type: 'string' },
-            description: 'Custom executable args; supports {{prompt}}, {{cwd}}, and {{responsePath}}.',
-          },
-          model: { type: 'string', description: 'Optional backend model override.' },
-          permissionMode: {
-            type: 'string',
-            enum: ['read-only', 'workspace-write', 'full-access'],
-            description: 'Backend permission mode. Defaults to workspace-write.',
-          },
-          allowUnsafe: {
-            type: 'boolean',
-            description: 'Required for full-access and custom backends.',
-          },
-        },
-        required: ['repoPath', 'task', 'agent'],
-      },
-      annotations: {
-        title: 'Delegate to coding agent',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: false,
-        openWorldHint: true,
-      },
-    },
-    {
-      name: 'get_agent_run_report',
-      description: 'Read progress, logs, diff summary, or patch for a delegated run.',
-      inputSchema: {
-        type: 'object',
-        properties: reportProperties,
-        required: ['repoPath', 'runId'],
-      },
-      annotations: {
-        title: 'Get agent run report',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
-    {
-      name: 'apply_agent_run',
-      description: 'Apply a reviewed delegated patch to a clean target repository.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          repoPath: { type: 'string', description: 'Absolute path to the repository.' },
-          runId: { type: 'string', description: 'Delegated run ID.' },
-          confirm: {
-            type: 'boolean',
-            description: 'Must be true to apply the patch.',
-          },
-          allowNeedsReview: {
-            type: 'boolean',
-            description: 'Explicitly allow applying a needs_review run. Blocked runs are never allowed.',
-          },
-        },
-        required: ['repoPath', 'runId', 'confirm'],
-      },
-      annotations: {
-        title: 'Apply agent run',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
-    {
-      name: 'cleanup_agent_run',
-      description: 'Cancel a delegated run and safely remove its managed artifacts.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          repoPath: { type: 'string', description: 'Absolute path to the repository.' },
-          runId: { type: 'string', description: 'Delegated run ID.' },
-          removeWorktree: {
-            type: 'boolean',
-            description: 'Also remove the managed git worktree.',
-          },
-        },
-        required: ['repoPath', 'runId'],
-      },
-      annotations: {
-        title: 'Clean up agent run',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
-    {
-      name: 'list_agent_backends',
-      description: 'Check which built-in agent CLIs are installed and compatible.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          repoPath: {
-            type: 'string',
-            description: 'Directory used while probing. Defaults to the server working directory.',
-          },
-        },
-      },
-      annotations: {
-        title: 'List agent backends',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
-    {
-      name: 'delegate_to_agy',
-      description: 'Legacy v0.1 alias for delegate_to_agent with agent="agy".',
-      inputSchema: {
-        type: 'object',
-        properties: commonDelegateProperties,
-        required: ['repoPath', 'task'],
-      },
-      annotations: {
-        title: 'Delegate to agy (legacy)',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: false,
-        openWorldHint: true,
-      },
-    },
-    {
-      name: 'get_agy_run_report',
-      description: 'Legacy v0.1 alias for get_agent_run_report.',
-      inputSchema: {
-        type: 'object',
-        properties: reportProperties,
-        required: ['repoPath', 'runId'],
-      },
-      annotations: {
-        title: 'Get agy run report (legacy)',
-        readOnlyHint: true,
-        destructiveHint: false,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
-    {
-      name: 'cleanup_agy_run',
-      description: 'Legacy v0.1 alias for cleanup_agent_run.',
-      inputSchema: {
-        type: 'object',
-        properties: {
-          repoPath: { type: 'string' },
-          runId: { type: 'string' },
-          removeWorktree: { type: 'boolean' },
-        },
-        required: ['repoPath', 'runId'],
-      },
-      annotations: {
-        title: 'Clean up agy run (legacy)',
-        readOnlyHint: false,
-        destructiveHint: true,
-        idempotentHint: true,
-        openWorldHint: false,
-      },
-    },
-  ],
+  tools: buildToolDefinitions(dispatchContext),
 }));
 
 function requireArguments(value: unknown): Record<string, unknown> {
@@ -297,15 +56,56 @@ function textResult(result: unknown) {
   };
 }
 
+async function dispatchTo(
+  target: DispatchHost,
+  args: Record<string, unknown>,
+) {
+  assertDispatchAllowed(dispatchContext, target);
+  const repoPath = requireString(args, 'repoPath');
+  const task = requireString(args, 'task');
+  if (
+    args.permissionMode === 'full-access'
+    || args.allowUnsafe === true
+    || args.agentCommand !== undefined
+    || args.agentArgs !== undefined
+  ) {
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      'Public dispatch tools accept only built-in agents in read-only or workspace-write mode.',
+    );
+  }
+  const {
+    agent: _agent,
+    agentCommand: _agentCommand,
+    agentArgs: _agentArgs,
+    allowUnsafe: _allowUnsafe,
+    dispatchOrigin: _dispatchOrigin,
+    dispatchTraceId: _dispatchTraceId,
+    ...safeArgs
+  } = args;
+  return delegateToAgent({
+    ...safeArgs,
+    repoPath,
+    task,
+    agent: target as AgentKind,
+    agentCommand: undefined,
+    agentArgs: [],
+    allowUnsafe: false,
+    dispatchOrigin: dispatchContext.host ?? 'internal',
+  } as DelegateAgentArgs);
+}
+
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   try {
     const args = requireArguments(request.params.arguments ?? {});
+    assertDispatcherActive(dispatchContext);
     switch (request.params.name) {
-      case 'delegate_to_agent':
-        requireString(args, 'repoPath');
-        requireString(args, 'task');
-        requireString(args, 'agent');
-        return textResult(await delegateToAgent(args as unknown as DelegateAgentArgs));
+      case 'delegate_to_codex':
+        return textResult(await dispatchTo('codex', args));
+      case 'delegate_to_claude':
+        return textResult(await dispatchTo('claude', args));
+      case 'delegate_to_agy':
+        return textResult(await dispatchTo('agy', args));
       case 'get_agent_run_report':
         return textResult(await getAgentRunReport(
           requireString(args, 'repoPath'),
@@ -325,22 +125,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       case 'list_agent_backends':
         return textResult(await listAgentBackends(
           typeof args.repoPath === 'string' ? args.repoPath : process.cwd(),
-        ));
-      case 'delegate_to_agy':
-        requireString(args, 'repoPath');
-        requireString(args, 'task');
-        return textResult(await delegateToAgy(args as unknown as DelegateArgs));
-      case 'get_agy_run_report':
-        return textResult(await getAgyRunReport(
-          requireString(args, 'repoPath'),
-          requireString(args, 'runId'),
-          args,
-        ));
-      case 'cleanup_agy_run':
-        return textResult(await cleanupAgyRun(
-          requireString(args, 'repoPath'),
-          requireString(args, 'runId'),
-          args.removeWorktree === true,
         ));
       default:
         throw new McpError(
@@ -369,7 +153,9 @@ async function main() {
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
-  console.error('codex-agent-delegator MCP server running on stdio');
+  console.error(
+    `codex-agy-delegator running for host ${dispatchContext.host ?? 'disabled'} at depth ${dispatchContext.depth}`,
+  );
 }
 
 main().catch((error) => {
