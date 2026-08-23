@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -20,62 +20,65 @@ jobs:
           node-version: 20
           cache: npm
       - name: Verify tag matches package version
-        shell: pwsh
+        shell: bash
         run: |
-          $packageVersion = node -p "require('./package.json').version"
-          $tagVersion = '${{ github.ref_name }}'.TrimStart('v')
-          if ($tagVersion -ne $packageVersion) {
-            throw "Tag version $tagVersion does not match package version $packageVersion"
-          }
-          git merge-base --is-ancestor '${{ github.sha }}' origin/main
-          if ($LASTEXITCODE -ne 0) {
-            throw 'Release tags must point to a commit contained in main'
-          }
+          set -euo pipefail
+          package_version="$(node -p "require('./package.json').version")"
+          tag_version="${GITHUB_REF_NAME#v}"
+          if [ "$tag_version" != "$package_version" ]; then
+            echo "Tag version $tag_version does not match package version $package_version" >&2
+            exit 1
+          fi
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
       - run: npm ci
       - run: npm run typecheck
       - run: npm test
       - run: npm audit --omit=dev --audit-level=high
       - name: Verify generated output is committed
-        shell: pwsh
-        run: |
-          git diff --exit-code
-          if ($LASTEXITCODE -ne 0) { throw 'Build output differs from the tagged commit' }
+        run: git diff --exit-code
       - name: Build release artifacts
         id: package
-        shell: pwsh
+        shell: bash
         run: |
-          $packed = npm pack --json | ConvertFrom-Json
-          $artifact = $packed[0].filename
-          $sha256 = (Get-FileHash -LiteralPath $artifact -Algorithm SHA256).Hash.ToLowerInvariant()
-          $lockfileSha256 = (Get-FileHash -LiteralPath package-lock.json -Algorithm SHA256).Hash.ToLowerInvariant()
-          npm sbom --sbom-format cyclonedx | Set-Content -LiteralPath sbom.cdx.json -Encoding utf8
-          "$sha256  $artifact" | Set-Content -LiteralPath checksums-sha256.txt -Encoding ascii
-          $manifest = [ordered]@{
-            name = 'codex-agy-delegator'
-            version = node -p "require('./package.json').version"
-            commit = '${{ github.sha }}'
-            artifact = $artifact
-            sha256 = $sha256
-            lockfileSha256 = $lockfileSha256
-            node = node --version
-            verification = @('typecheck', 'test', 'production-audit')
-            supportedClients = [ordered]@{
-              codex = 'current CLI with exec --ignore-user-config'
-              claude = 'current Claude Code with --strict-mcp-config'
-              agy = '1.1.1 or newer'
-            }
-          }
-          $manifest | ConvertTo-Json | Set-Content -LiteralPath release-manifest.json -Encoding utf8
-          "artifact=$artifact" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          set -euo pipefail
+          artifact="$(npm pack --json | jq -r '.[0].filename')"
+          sha256="$(sha256sum "$artifact" | awk '{print $1}')"
+          lockfile_sha256="$(sha256sum package-lock.json | awk '{print $1}')"
+          version="$(node -p "require('./package.json').version")"
+          node_version="$(node --version)"
+          npm sbom --sbom-format cyclonedx > sbom.cdx.json
+          printf '%s  %s\n' "$sha256" "$artifact" > checksums-sha256.txt
+          jq -n \
+            --arg version "$version" \
+            --arg commit "$GITHUB_SHA" \
+            --arg artifact "$artifact" \
+            --arg sha256 "$sha256" \
+            --arg lockfileSha256 "$lockfile_sha256" \
+            --arg node "$node_version" \
+            '{
+              name: "codex-agy-delegator",
+              version: $version,
+              commit: $commit,
+              artifact: $artifact,
+              sha256: $sha256,
+              lockfileSha256: $lockfileSha256,
+              node: $node,
+              verification: ["typecheck", "test", "production-audit"],
+              supportedClients: {
+                codex: "current CLI with exec --ignore-user-config",
+                claude: "current Claude Code with --strict-mcp-config",
+                agy: "1.1.1 or newer"
+              }
+            }' > release-manifest.json
+          echo "artifact=$artifact" >> "$GITHUB_OUTPUT"
       - name: Publish GitHub release
-        shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
-        run: >-
-          gh release create '${{ github.ref_name }}'
-          '${{ steps.package.outputs.artifact }}'
-          checksums-sha256.txt
-          release-manifest.json
-          sbom.cdx.json
-          --verify-tag
-          --generate-notes
+        run: |
+          gh release create "${{ github.ref_name }}" \
+            "${{ steps.package.outputs.artifact }}" \
+            checksums-sha256.txt \
+            release-manifest.json \
+            sbom.cdx.json \
+            --verify-tag \
+            --generate-notes
